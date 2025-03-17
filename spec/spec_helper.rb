@@ -28,8 +28,11 @@ DB.extension :pg_json
 DB.extension :pg_array
 
 ::Sequel::Migrator.run(DB, "lib/generators/audit_migration/templates")
+# ::Sequel::Migrator.run(DB, "lib/generators/audit_migration/templates", target: 0)
 
 RSpec.configure do |config|
+  config.filter_run_when_matching :focus
+
   # Enable flags like --only-failures and --next-failure
   config.example_status_persistence_file_path = ".rspec_status"
 

@@ -7,12 +7,15 @@ module Sequel
   module Plugins
     module BulkAudit
       module ClassMethods
-        def with_current_user(current_user, attributes = {})
+        def with_current_user(current_user, attributes = {}, **kwargs)
+          kwarg_params = kwargs.map { |keyword, value| Sequel.expr(value).as(keyword) }
+
           db.transaction do
             data = db.select(
               Sequel.expr(current_user&.id || 0).as(:user_id),
               Sequel.cast(current_user&.login || "unspecified", :text).as(:username),
               Sequel.expr(name).as(:model_name),
+              *kwarg_params,
               Sequel.pg_array(stringified_columns).as(:columns),
               Sequel.pg_jsonb(attributes).as(:data),
             )

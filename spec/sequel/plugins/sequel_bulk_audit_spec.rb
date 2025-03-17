@@ -2,6 +2,7 @@
 
 require "spec_helper"
 require "pry"
+require "ostruct"
 
 RSpec.describe Sequel::Plugins::BulkAudit do
   before do
@@ -32,7 +33,7 @@ RSpec.describe Sequel::Plugins::BulkAudit do
   let(:changed)    { { "value" => record.value, "id" => record.id } }
 
   def with_audit_log
-    data_model.with_current_user(current_user) { yield }
+    data_model.with_current_user(current_user, workspace_id: 5) { yield }
   end
 
   def class_with_bulk_audit(table)
@@ -92,19 +93,21 @@ RSpec.describe Sequel::Plugins::BulkAudit do
       expect(DB[:audit_logs].count).to eq(0)
 
       DB.transaction do
-        SimpleData.with_current_user(current_user) { simple_data } # log for SimpleData
-        OtherData.with_current_user(current_user)  { other_data }  # log for OtherData
+        SimpleData.with_current_user(current_user, workspace_id: 5) { simple_data } # log for SimpleData
+        OtherData.with_current_user(current_user, workspace_id: 5)  { other_data }  # log for OtherData
       end
 
       expect(DB[:audit_logs].all).to include(
         a_hash_including(
           event: "INSERT",
           model_type: "SimpleData",
+          workspace_id: 5,
           changed: { "id" => simple_data.id, "value" => "50" },
         ),
         a_hash_including(
           event: "INSERT",
           model_type: "OtherData",
+          workspace_id: 5,
           changed: { "id" => other_data.id, "value" => "100" },
         ),
       )
@@ -117,7 +120,7 @@ RSpec.describe Sequel::Plugins::BulkAudit do
 
       it "raises error" do
         expect do
-          OtherData.with_current_user(current_user) { simple_data }
+          OtherData.with_current_user(current_user, workspace_id: 5) { simple_data }
         end.to raise_error(Sequel::DatabaseError).with_message(error_message)
       end
     end

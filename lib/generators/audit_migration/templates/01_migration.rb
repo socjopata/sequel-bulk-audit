@@ -8,6 +8,7 @@ Sequel.migration do
       column :model_id,         String
       column :event,            String
       column :changed,          :jsonb
+      column :workspace_id,     :int
       column :user_id,          :int
       column :username,         String
       column :user_type,        String, default: "User"
@@ -18,6 +19,7 @@ Sequel.migration do
       index :created_at
       index %i[model_type model_id]
       index :user_id
+      index :workspace_id
     end
 
     create_function(:audit_changes, <<~SQL, returns: :trigger, language: :plpgsql, replace: true)
@@ -70,9 +72,9 @@ Sequel.migration do
             RETURN NULL;
         END CASE;
         INSERT INTO audit_logs ("model_type", "model_id", "event", "changed",
-                                "created_at", "user_id", "username", "query", "data")
+                                "created_at", "user_id", "username", "workspace_id", "query", "data")
         VALUES (coalesce(__audit_info.model_name::TEXT, TG_TABLE_NAME::TEXT), model_id, TG_OP,
-                changes, NOW(), __audit_info.user_id, __audit_info.username, current_query(),
+                changes, NOW(), __audit_info.user_id, __audit_info.username, __audit_info.workspace_id, current_query(),
                 __audit_info.data);
         RETURN return_record;
       END;
